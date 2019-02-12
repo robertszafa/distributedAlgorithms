@@ -21,11 +21,11 @@ public class Simulation {
 
         ring = new BidirectionalRing(n, a);
         ring.lcrAlgorithm();
-        System.out.println(ring.getLeader().getId());
+        // System.out.println(ring.getLeader().getId());
 
-        ring.resetRing();
-        ring.hsAlgorithm();
-        System.out.println(ring.getLeader().getId());
+        // ring.resetRing();
+        // ring.hsAlgorithm();
+        // System.out.println(ring.getLeader().getId());
 
     }
     

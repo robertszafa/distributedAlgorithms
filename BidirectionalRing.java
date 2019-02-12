@@ -5,21 +5,17 @@ import java.util.Random;
 
 public class BidirectionalRing {
     private ArrayList<Node> nodes;
-    private Node leader;
     
     public BidirectionalRing(int n, int a) {
         nodes = createBiderectionalRing(n, a);
-        leader = null;
     }
 
     public void resetRing() {
-        leader = null;
         nodes.forEach(n -> n.resetNode());  
     }
 
     /**
-     * The LCR Message holds only the id that's being send
-     * Message = <id>
+     * The LCR Message holds only the node id. Message = <id>
      */
     public void lcrAlgorithm() {
         int round = 1;
@@ -27,23 +23,30 @@ public class BidirectionalRing {
         roundLoop:
         for (;;round++) {
             if (round == 1) {
-                // message generation and sending
+                // MESSAGE GENERATION -> each node generates a message with it's ID
+                // MESSAGE TRANSMISSION -> each node sends the message to it's clockwise neighbour
                 nodes.forEach(
-                    n -> n.sendClock(new Message(n.getId())));
+                    n -> n.sendClock(new LCRMessage(n.getId())));
             }
             else { // round > 1
                 for (Node n : nodes) {
                     if (!n.isTerminated()) {
-                        int myid = n.getId();
-                        int inMsg = n.getReceivedMsgFromCounterclockwise().getId();
+                        int myId = n.getId();
+                        int inMsg = n.getRcvdMsgFromCounterclock().getId();
 
-                        if (inMsg > myid) {
-                            n.sendClock(new Message(inMsg));
+                        if (inMsg > myId) { 
+                            // upon receiving a larger ID -> 
+                            // pass the msg to the next clockwise node
+                            n.sendClock(new LCRMessage(inMsg));
                         }
-                        else if (inMsg == myid) {
+                        else if (inMsg == myId) {
+                            // upon receiving an ID equal to myID ->
+                            // elect itself the leader
                             n.setStatus(Node.LEADER_STATUS);
-                            leader = n;
-                            n.sendClock(new Message(Node.LEADER_STATUS));
+                            n.setLeaderId(myId);
+                            
+                            // TERMINATION STAGE -> the leader node sends a message notifying
+                            n.sendClock(new LCRLeaderMessage(myId));
                         }
                         else if (inMsg == Node.LEADER_STATUS && 
                                     n.getStatus() == Node.LEADER_STATUS) {
@@ -51,8 +54,9 @@ public class BidirectionalRing {
                             break roundLoop;
                         }
                         else if (inMsg == Node.LEADER_STATUS) {
-                            n.setTerminated(true);;
-                            n.sendClock(new Message(Node.LEADER_STATUS));
+                            LCRLeaderMessage leaderMsg = (LCRLeaderMessage) n.getRcvdMsgFromCounterclock();
+                            n.sendClock(new LCRLeaderMessage(leaderMsg.getLeaderId()));
+                            n.setTerminated(true);
                         }
                     }
                 }
@@ -76,29 +80,32 @@ public class BidirectionalRing {
                     int myId = n.getId();
 
                     if (round == 1) {
-                        n.sendClock(new Message(myId, OUT_DIR, (int) Math.pow(2, phase)));
-                        n.sendCounterclock(new Message(myId, OUT_DIR, (int) Math.pow(2, phase)));
+                        n.sendClock(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, phase)));
+                        n.sendCounterclock(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, phase)));
                         continue; // to next node
                     }
 
+                    HSMessage fromCounter = (HSMessage) n.getRcvdMsgFromCounterclock();
+                    HSMessage fromClcok = (HSMessage) n.getRcvdMsgFromClock();
+
                     // from countrerclockwise neighbour 
-                    int inIdFromCounter = n.getReceivedMsgFromClockwise().getId();
-                    int dirFromCounter = n.getReceivedMsgFromClockwise().getDir();
-                    int hopCountFromCounter = n.getReceivedMsgFromClockwise().getHopCount();
+                    int inIdFromCounter = fromCounter.getId();
+                    int dirFromCounter = fromCounter.getDir();
+                    int hopCountFromCounter = n.getRcvdMsgFromCounterclock().getHopCount();
 
                     // from clockwise neighbour 
-                    int inIdFromClock = n.getReceivedMsgFromClockwise().getId();
-                    int dirFromClock = n.getReceivedMsgFromClockwise().getDir();
-                    int hopCountFromClock = n.getReceivedMsgFromClockwise().getHopCount();
+                    int inIdFromClock = n.getRcvdMsgFromClock().getId();
+                    int dirFromClock = n.getRcvdMsgFromClock().getDir();
+                    int hopCountFromClock = n.getRcvdMsgFromClock().getHopCount();
 
                     // leader msg received by non leader node -> pass leader msg on
                     if (inIdFromClock == Node.LEADER_STATUS && 
                         inIdFromCounter == Node.LEADER_STATUS && 
                         n.getStatus() != Node.LEADER_STATUS) {
                             n.sendClock(
-                                    new Message(Node.LEADER_STATUS, OUT_DIR, hopCountFromClock - 1));
+                                    new HSMessage(Node.LEADER_STATUS, OUT_DIR, hopCountFromClock - 1));
                             n.sendCounterclock(
-                                    new Message(Node.LEADER_STATUS, OUT_DIR, hopCountFromClock - 1));
+                                    new HSMessage(Node.LEADER_STATUS, OUT_DIR, hopCountFromClock - 1));
                             n.setTerminated(true);
                             continue;
                     }
@@ -116,8 +123,8 @@ public class BidirectionalRing {
                         inIdFromClock == myId && inIdFromCounter == myId &&
                         hopCountFromClock == 1 && hopCountFromCounter == 1) {
                             phase++;
-                            n.sendClock(new Message(myId, OUT_DIR, (int) Math.pow(2, phase)));
-                            n.sendCounterclock(new Message(myId, OUT_DIR, 
+                            n.sendClock(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, phase)));
+                            n.sendCounterclock(new HSMessage(myId, OUT_DIR, 
                                                     (int) Math.floor(Math.pow(2, phase)/2)));
                             continue; // to next node
                     }
@@ -127,22 +134,21 @@ public class BidirectionalRing {
                     if (dirFromCounter == OUT_DIR) {
                         if (inIdFromCounter > myId && hopCountFromCounter > 1) {
                             n.sendClock(
-                                new Message(inIdFromCounter, OUT_DIR, hopCountFromCounter - 1));
+                                new HSMessage(inIdFromCounter, OUT_DIR, hopCountFromCounter - 1));
                         }
                         else if (inIdFromCounter > myId && hopCountFromCounter == 1) {
-                            n.sendCounterclock(new Message(inIdFromCounter, IN_DIR, 1));
+                            n.sendCounterclock(new HSMessage(inIdFromCounter, IN_DIR, 1));
                         }
                         else if (inIdFromCounter == myId) {
                             n.setStatus(Node.LEADER_STATUS);
-                            leader = n;
                             n.sendClock(
-                                new Message(Node.LEADER_STATUS, OUT_DIR, 
+                                new HSMessage(Node.LEADER_STATUS, OUT_DIR, 
                                                     (int) Math.floor(Math.pow(2, phase)/2)));
                         }
                     }
                     else if (dirFromCounter == IN_DIR && 
                                 myId != inIdFromCounter && hopCountFromCounter == 1) {
-                        n.sendClock(new Message(inIdFromCounter, IN_DIR, 1));
+                        n.sendClock(new HSMessage(inIdFromCounter, IN_DIR, 1));
                     }
                     
 
@@ -150,33 +156,26 @@ public class BidirectionalRing {
                     if (dirFromClock == OUT_DIR) {
                         if (inIdFromClock > myId && hopCountFromClock > 1) {
                             n.sendCounterclock(
-                                new Message(inIdFromClock, OUT_DIR, hopCountFromCounter - 1));
+                                new HSMessage(inIdFromClock, OUT_DIR, hopCountFromCounter - 1));
                         }
                         else if (inIdFromClock > myId && hopCountFromCounter == 1) {
-                            n.sendClock(new Message(inIdFromClock, IN_DIR, 1));
+                            n.sendClock(new HSMessage(inIdFromClock, IN_DIR, 1));
                         }
                         else if (inIdFromClock == myId) {
                             n.setStatus(Node.LEADER_STATUS);
-                            leader = n;
                             n.sendCounterclock(
-                                new Message(Node.LEADER_STATUS, OUT_DIR, (int) Math.pow(2, phase)));
+                                new HSMessage(Node.LEADER_STATUS, OUT_DIR, (int) Math.pow(2, phase)));
                         }
                     }
                     else if (dirFromClock == IN_DIR && 
                                 myId != inIdFromClock && hopCountFromClock == 1) {
-                        n.sendCounterclock(new Message(inIdFromClock, IN_DIR, 1));
+                        n.sendCounterclock(new HSMessage(inIdFromClock, IN_DIR, 1));
                     }
                 }
             }
         }
     }
 
-    /**
-     * @return the leader
-     */
-    public Node getLeader() {
-        return leader;
-    }
 
     private ArrayList<Node> createBiderectionalRing(int n, int a) {
         Set<Integer> ids = getRandomIds(n, n*a);

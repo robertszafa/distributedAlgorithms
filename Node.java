@@ -8,6 +8,7 @@ public class Node {
     private boolean isTerminated;
     private int status;
     private int id;
+    private int leaderId;
     private HashMap<Node, Message> receivedMsg;
     private Node clockwiseNeighbour;
     private Node counterclockwiseNeighbour;
@@ -21,6 +22,7 @@ public class Node {
     public void resetNode() {
         isTerminated = false;
         status = UNKNOWN_STATUS;
+        leaderId = 0;
         receivedMsg = new HashMap<>();
     }
 
@@ -40,14 +42,14 @@ public class Node {
     /**
      * @return the receivedMsg
      */
-    public Message getReceivedMsgFromClockwise() {
+    public Message getRcvdMsgFromClock() {
         return receivedMsg.get(clockwiseNeighbour);
     }
 
     /**
      * @return the receivedMsg
      */
-    public Message getReceivedMsgFromCounterclockwise() {
+    public Message getRcvdMsgFromCounterclock() {
         return receivedMsg.get(counterclockwiseNeighbour);
     }
     /**
@@ -56,6 +58,7 @@ public class Node {
     public int getId() {
         return id;
     }
+
 
     /**
      * @return the status
@@ -83,6 +86,13 @@ public class Node {
      */
     public void setTerminated(boolean isTerminated) {
         this.isTerminated = isTerminated;
+    }
+
+    /**
+     * @param leaderId the leaderId to set
+     */
+    public void setLeaderId(int leaderId) {
+        this.leaderId = leaderId;
     }
 
     /**
