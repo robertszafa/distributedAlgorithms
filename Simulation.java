@@ -24,8 +24,8 @@ public class Simulation {
         System.out.println(ring.getLeader().getId());
 
         ring.resetRing();
-        // ring.hsAlgorithm();
-        // System.out.println(ring.getLeader().getId());
+        ring.hsAlgorithm();
+        System.out.println(ring.getLeader().getId());
 
     }
     

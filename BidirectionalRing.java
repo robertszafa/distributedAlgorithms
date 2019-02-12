@@ -91,13 +91,34 @@ public class BidirectionalRing {
                     int dirFromClock = n.getReceivedMsgFromClockwise().getDir();
                     int hopCountFromClock = n.getReceivedMsgFromClockwise().getHopCount();
 
+                    // leader msg received by non leader node -> pass leader msg on
+                    if (inIdFromClock == Node.LEADER_STATUS && 
+                        inIdFromCounter == Node.LEADER_STATUS && 
+                        n.getStatus() != Node.LEADER_STATUS) {
+                            n.sendClock(
+                                    new Message(Node.LEADER_STATUS, OUT_DIR, hopCountFromClock - 1));
+                            n.sendCounterclock(
+                                    new Message(Node.LEADER_STATUS, OUT_DIR, hopCountFromClock - 1));
+                            n.setTerminated(true);
+                            continue;
+                    }
+                    // leader msg received by leader node -> all nodes but leader have terminated ->
+                    // terminate leader and end the algorithm
+                    else if (inIdFromClock == Node.LEADER_STATUS && 
+                                inIdFromCounter == Node.LEADER_STATUS && 
+                                n.getStatus() == Node.LEADER_STATUS) {
+                            n.setTerminated(true);
+                            break roundLoop;
+                    }
+
                     // message has returned to node -> initiate next phase
                     if (dirFromClock == IN_DIR && dirFromCounter == IN_DIR &&
                         inIdFromClock == myId && inIdFromCounter == myId &&
                         hopCountFromClock == 1 && hopCountFromCounter == 1) {
                             phase++;
                             n.sendClock(new Message(myId, OUT_DIR, (int) Math.pow(2, phase)));
-                            n.sendCounterclock(new Message(myId, OUT_DIR, (int) Math.pow(2, phase)));
+                            n.sendCounterclock(new Message(myId, OUT_DIR, 
+                                                    (int) Math.floor(Math.pow(2, phase)/2)));
                             continue; // to next node
                     }
 
@@ -105,7 +126,8 @@ public class BidirectionalRing {
                     // message from countrerclockwise neighbour
                     if (dirFromCounter == OUT_DIR) {
                         if (inIdFromCounter > myId && hopCountFromCounter > 1) {
-                            n.sendClock(new Message(inIdFromCounter, OUT_DIR, hopCountFromCounter - 1));
+                            n.sendClock(
+                                new Message(inIdFromCounter, OUT_DIR, hopCountFromCounter - 1));
                         }
                         else if (inIdFromCounter > myId && hopCountFromCounter == 1) {
                             n.sendCounterclock(new Message(inIdFromCounter, IN_DIR, 1));
@@ -113,7 +135,9 @@ public class BidirectionalRing {
                         else if (inIdFromCounter == myId) {
                             n.setStatus(Node.LEADER_STATUS);
                             leader = n;
-                            n.sendClock(new Message(Node.LEADER_STATUS, OUT_DIR, (int) Math.pow(2, phase)));
+                            n.sendClock(
+                                new Message(Node.LEADER_STATUS, OUT_DIR, 
+                                                    (int) Math.floor(Math.pow(2, phase)/2)));
                         }
                     }
                     else if (dirFromCounter == IN_DIR && 
@@ -125,7 +149,8 @@ public class BidirectionalRing {
                     // message from clockwise neighbour 
                     if (dirFromClock == OUT_DIR) {
                         if (inIdFromClock > myId && hopCountFromClock > 1) {
-                            n.sendCounterclock(new Message(inIdFromClock, OUT_DIR, hopCountFromCounter - 1));
+                            n.sendCounterclock(
+                                new Message(inIdFromClock, OUT_DIR, hopCountFromCounter - 1));
                         }
                         else if (inIdFromClock > myId && hopCountFromCounter == 1) {
                             n.sendClock(new Message(inIdFromClock, IN_DIR, 1));
@@ -133,7 +158,8 @@ public class BidirectionalRing {
                         else if (inIdFromClock == myId) {
                             n.setStatus(Node.LEADER_STATUS);
                             leader = n;
-                            n.sendCounterclock(new Message(Node.LEADER_STATUS, OUT_DIR, (int) Math.pow(2, phase)));
+                            n.sendCounterclock(
+                                new Message(Node.LEADER_STATUS, OUT_DIR, (int) Math.pow(2, phase)));
                         }
                     }
                     else if (dirFromClock == IN_DIR && 
