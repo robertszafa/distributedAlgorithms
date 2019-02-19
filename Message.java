@@ -11,4 +11,8 @@ public class Message {
     public int getData() {
         return data;
     }
+
+    public boolean isLeaderMsg() {
+        return data == Node.LEADER_STATUS;
+    }
 }

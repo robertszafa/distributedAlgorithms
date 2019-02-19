@@ -14,6 +14,16 @@ public class HSMessage extends Message {
         this.hopCount = hopCount;
     }
 
+    /**
+     * 
+     * @param id
+     * @param hopCount
+     */
+    public HSMessage(int id, int hopCount) {
+        super(id);
+        this.hopCount = hopCount;
+    }
+
 
     /**
      * @return the id

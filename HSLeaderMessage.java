@@ -1,8 +1,8 @@
 public class HSLeaderMessage extends HSMessage {
     private int leaderId;
 
-    public HSLeaderMessage(int leaderId, int dir, int hopCount) {
-        super(Node.LEADER_STATUS, dir, hopCount);
+    public HSLeaderMessage(int leaderId, int hopCount) {
+        super(Node.LEADER_STATUS, hopCount);
         this.leaderId = leaderId;
     }
 

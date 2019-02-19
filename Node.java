@@ -1,4 +1,5 @@
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 public class Node {
     // states
@@ -9,12 +10,15 @@ public class Node {
     private int status;
     private int id;
     private int leaderId;
-    private HashMap<Node, Message> receivedMsg;
     private Node clockwiseNeighbour;
     private Node counterclockwiseNeighbour;
+    private Message clockBuffMsg;
+    private Message counterBuffMsg;
+    private HashMap<Node, Message> receivedMsg;
 
     public Node (int id) {
         this.id = id;
+        isTerminated = false;
         status = UNKNOWN_STATUS;
         receivedMsg = new HashMap<>();
     }
@@ -26,12 +30,18 @@ public class Node {
         receivedMsg = new HashMap<>();
     }
 
-    public void sendClock(Message msg) {
-        clockwiseNeighbour.receiveMsg(this, msg);
+    public void sendClock() {
+        if (clockBuffMsg != null) {
+            clockwiseNeighbour.receiveMsg(this, clockBuffMsg);
+        }
+        clockBuffMsg = null;
     }
 
-    public void sendCounterclock(Message msg) {
-        counterclockwiseNeighbour.receiveMsg(this, msg);
+    public void sendCounterclock() {
+        if (counterBuffMsg != null) {
+            counterclockwiseNeighbour.receiveMsg(this, counterBuffMsg);
+        }
+        counterBuffMsg = null;
     }
 
     // this will override any message previously received fromNode
@@ -59,6 +69,12 @@ public class Node {
         return id;
     }
 
+    /**
+     * @return the leaderId
+     */
+    public int getLeaderId() {
+        return leaderId;
+    }
 
     /**
      * @return the status
@@ -81,11 +97,24 @@ public class Node {
         return counterclockwiseNeighbour;
     }
 
+    public void terminate() {
+        isTerminated = true;
+    }
+
     /**
-     * @param isTerminated the isTerminated to set
+     * Message generation for clockwise neighbour
+     * @param clockBuffMsg the clockBuffMsg to set
      */
-    public void setTerminated(boolean isTerminated) {
-        this.isTerminated = isTerminated;
+    public void setClockBuffMsg(Message clockBuffMsg) {
+        this.clockBuffMsg = clockBuffMsg;
+    }
+
+    /**
+     * Message generation for clockwise neighbour
+     * @param counterBuffMsg the counterBuffMsg to set
+     */
+    public void setCounterBuffMsg(Message counterBuffMsg) {
+        this.counterBuffMsg = counterBuffMsg;
     }
 
     /**
@@ -122,5 +151,22 @@ public class Node {
     public void setStatus(int status) {
         this.status = status;
     }
+
+    @Override
+    public boolean equals(Object o) { 
+        // if the object is compared with itself then return true   
+        if (o == this) { 
+            return true; 
+        } 
+        // check if o is a Node
+        if (!(o instanceof Node)) { 
+            return false; 
+        } 
+        // typecast to Node 
+        Node n = (Node) o; 
+        // compare the ID's of the Nodes
+        return this.id == n.getId(); 
+    } 
+} 
 
 }
