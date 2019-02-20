@@ -1,20 +1,27 @@
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.Random;
+import java.util.Set;
 
 public class BidirectionalRing {
+    public static final int RANDOM_IDS = 1;
+    public static final int CLOCK_ORDERED_IDS = 2;
+    public static final int COUNTER_ORDERED_IDS = 3;
     private ArrayList<Node> nodes;
     
-    public BidirectionalRing(int n, int a) {
-        nodes = createBiderectionalRing(n, a);
+    public BidirectionalRing(int n, int a, int idAssignment) {
+        nodes = createBiderectionalRing(n, a, idAssignment);
+        System.out.println("Set of nodes: ");
+        for (Node node : nodes) {
+            System.out.print(node.getId() + " ");
+        }
+        System.out.println();
     }
 
 
-    public void resetRing() {
-        nodes.forEach(n -> n.resetNode());  
-    }
-
+    /**
+     * @return true if all nodes elected the same, correct leader
+     */
     public boolean hasCorrectLeader() {
         int leaderId = nodes.get(0).getLeaderId();
         for (Node n : nodes) {
@@ -26,6 +33,22 @@ public class BidirectionalRing {
         return true;
     }
 
+    /**
+     * @return total number of messages transmitted by all nodes 
+     */
+    public int getMsgCount() {
+        int msgCount = 0;
+        for (Node n : nodes) {
+            msgCount += n.getMsgCounter();
+        }
+
+        return msgCount;
+    }
+
+    public void resetRing() {
+        nodes.forEach(n -> n.resetNode());  
+    }
+
 
     /**
      * The LCR Message holds only the node id. LCRMessage = <id>
@@ -35,8 +58,10 @@ public class BidirectionalRing {
      * forward the message to it's clockwise neighbour and terminate. 
      * Upon receiving a leader message, a leader node will know that all non-leader nodes have 
      * terminated and that they know the leaderID and it will terminate.
+     * 
+     * @return number of rounds after which the algorithm terminates
      */
-    public void lcrAlgorithm() {
+    public int lcrAlgorithm() {
         int round = 1;
 
         roundLoop:
@@ -95,9 +120,10 @@ public class BidirectionalRing {
                     continue roundLoop;
                 }
             }
-            System.out.println("Nodes terminated in " + round);
             break roundLoop;
         }
+
+        return round - 1;
     }
 
     /**
@@ -112,11 +138,11 @@ public class BidirectionalRing {
      *      if hopCount > 1 then forward msg to next neigbour with hopCount - 1 and terminate
      *      else if hopCount = 1 then terminate
      * 
-     * End the algorithm once all nodes terminate
+     * @return number of rounds after which the algorithm terminates
      */
-    public void hsAlgorithm() {
-        int IN_DIR = 1;
-        int OUT_DIR = 0;
+    public int hsAlgorithm() {
+        int IN_DIR = HSMessage.IN_DIR;
+        int OUT_DIR = HSMessage.OUT_DIR;
         int phase = 0;
         int round = 1;
 
@@ -147,13 +173,11 @@ public class BidirectionalRing {
                         n.setCounterBuffMsg(new HSLeaderMessage(fromClockLeader.getLeaderId(), 
                                                                     fromClock.getHopCount() - 1));
                         n.terminate();
-                        continue nodesLoop;
                     }
                     else if (fromClock.isLeaderMsg() && fromClock.getHopCount() == 1) {
                         HSLeaderMessage fromClockLeader = (HSLeaderMessage) fromClock;
                         n.setLeaderId(fromClockLeader.getLeaderId());
                         n.terminate();
-                        continue nodesLoop;
                     }
                     // from counterclockwise neighbour
                     if (fromCounter.isLeaderMsg() && fromCounter.getHopCount() > 1) {
@@ -162,13 +186,11 @@ public class BidirectionalRing {
                         n.setClockBuffMsg(new HSLeaderMessage(fromCounterLeader.getLeaderId(),
                                                                     fromClock.getHopCount() - 1));
                         n.terminate();
-                        continue nodesLoop;
                     }
                     else if (fromCounter.isLeaderMsg() && fromCounter.getHopCount() == 1) {
                         HSLeaderMessage fromCounterLeader = (HSLeaderMessage) fromCounter;
                         n.setLeaderId(fromCounterLeader.getLeaderId());
                         n.terminate();
-                        continue nodesLoop;
                     }
                     
                     /** UPON RECEIVING A MESSAGE FROM CLOCK- AND COUNTERCLOCK WITH 
@@ -178,9 +200,7 @@ public class BidirectionalRing {
                             fromClock.getHopCount() == 1 && fromCounter.getHopCount() == 1) {
                         phase++;
                         n.setClockBuffMsg(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, phase)));
-                        n.setCounterBuffMsg(new HSMessage(myId, OUT_DIR, 
-                                                        (int) Math.floor(Math.pow(2, phase)/2)));
-                        continue nodesLoop; // to next node
+                        n.setCounterBuffMsg(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, phase)));
                     }
 
                     /** UPON RECEIVING A MESSAGE FROM COUNTERCLOCKWISE NEIGHBOUR */
@@ -196,10 +216,13 @@ public class BidirectionalRing {
                             n.setStatus(Node.LEADER_STATUS);
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
-                            // hopCount = (2^phase - getHopCount()) / 2
+                            // hopCount = (2^phase - getHopCount()) / 2 for both neighbours
                             n.setClockBuffMsg(new HSLeaderMessage(myId, 
                                         (int) (Math.pow(2, phase) - fromCounter.getHopCount()) / 2));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
+                                        (int) (Math.pow(2, phase) - fromClock.getHopCount()) / 2));
                             n.terminate();
+                            continue nodesLoop; // to next node after this terminates
                         }
                     }
                     else if (fromCounter.getDir() == IN_DIR && myId != fromCounter.getId() && 
@@ -220,10 +243,13 @@ public class BidirectionalRing {
                             n.setStatus(Node.LEADER_STATUS);
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
-                            // hopCount = (2^phase - getHopCount()) / 2
+                            // hopCount = (2^phase - getHopCount()) / 2 for both neighbours
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
+                                        (int) (Math.pow(2, phase) - fromCounter.getHopCount()) / 2));
                             n.setCounterBuffMsg(new HSLeaderMessage(myId, 
                                         (int) (Math.pow(2, phase) - fromClock.getHopCount()) / 2));
                             n.terminate();
+                            continue nodesLoop; // to next node after this terminates
                         }
                     }
                     else if (fromClock.getDir() == IN_DIR && 
@@ -233,7 +259,7 @@ public class BidirectionalRing {
                 }
             }
 
-            // MESSAGE TRANSMISSION -> each node sends the message to it's clockwise neighbour
+            // MESSAGE TRANSMISSION -> each node sends the generated message to both neighbour
             for (Node n : nodes) {
                 n.sendClock();
                 n.sendCounterclock();
@@ -245,9 +271,11 @@ public class BidirectionalRing {
                     continue roundLoop;
                 }
             }
-            System.out.println("Nodes terminated in " + round);
             break roundLoop;
         }
+
+
+        return round - 1;
     }
 
 
@@ -256,10 +284,19 @@ public class BidirectionalRing {
      * @param a
      * @return ArrayList<Node> of created, interconnected nodes that form a ring
      */
-    private ArrayList<Node> createBiderectionalRing(int n, int a) {
-        // set of IDs to choose from
-        Set<Integer> ids = getRandomIds(n, n*a);
-        ArrayList<Node> ring = new ArrayList<>(n);
+    private ArrayList<Node> createBiderectionalRing(int n, int a, int idAssignment) {
+        ArrayList<Node> ring = new ArrayList<>();
+        ArrayList<Integer> ids = new ArrayList<>();
+
+        if (idAssignment == RANDOM_IDS) {
+            ids = getRandomIds(n, n*a);
+        } 
+        else if (idAssignment == CLOCK_ORDERED_IDS) {
+            ids = getIncreasingIds(n);
+        }
+        else if (idAssignment == COUNTER_ORDERED_IDS) {
+            ids = getDecreasingIds(n);
+        }
 
         // create nodes
         for (int id : ids) {
@@ -279,16 +316,44 @@ public class BidirectionalRing {
     /**
      * @param numberOfIds
      * @param maxId
-     * @return set of random integers ranging from 1 to maxId
+     * @return ArrayList of random integers ranging from 1 to maxId
      */
-    private Set<Integer> getRandomIds(int numberOfIds, int maxId) {
-        Set<Integer> ids = new HashSet<Integer>();		
+    private ArrayList<Integer> getRandomIds(int numberOfIds, int maxId) {
+        Set<Integer> idsSet = new HashSet<>();
         Random random = new Random();
         int nextId;
 
-        while(ids.size() < numberOfIds){
+        while(idsSet.size() < numberOfIds) {
             nextId = random.nextInt(maxId) + 1;
-            ids.add(nextId);
+            idsSet.add(nextId);
+        }
+
+        return new ArrayList<>(idsSet);
+    }
+
+    /**
+     * @param numberOfIds
+     * @return ArrayList of increasing integers ranging from 1 to numberOfIds
+     */
+    private ArrayList<Integer> getIncreasingIds(int numberOfIds) {
+        ArrayList<Integer> ids = new ArrayList<Integer>();		
+
+        for (int id = 1; id <= numberOfIds; id++) {
+            ids.add(id);
+        }
+
+        return ids;
+    }
+
+    /**
+     * @param numberOfIds
+     * @return ArrayList of decreasing integers ranging from 1 to numberOfIds
+     */
+    private ArrayList<Integer> getDecreasingIds(int numberOfIds) {
+        ArrayList<Integer> ids = new ArrayList<Integer>();		
+
+        for (int id = numberOfIds; id > 0; id--) {
+            ids.add(id);
         }
 
         return ids;
@@ -296,7 +361,7 @@ public class BidirectionalRing {
 
     /**
      * @param id
-     * @return node from nodes with id
+     * @return node from nodes given its id
      */
     private Node getNode(int id) {
         for (Node n : nodes) {
@@ -312,7 +377,7 @@ public class BidirectionalRing {
     /**
      * @return leader node from nodes
      */
-    private Node getNode() {
+    private Node getLeaderNode() {
         for (Node n : nodes) {
             if (n.getStatus() == Node.LEADER_STATUS) {
                 return n;

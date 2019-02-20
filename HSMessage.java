@@ -1,4 +1,6 @@
 public class HSMessage extends Message {
+    public static final int IN_DIR = 1;
+    public static final int OUT_DIR = 0;
     private int dir;
     private int hopCount;
 

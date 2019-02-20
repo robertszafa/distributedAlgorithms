@@ -1,5 +1,4 @@
 import java.util.HashMap;
-import java.util.Map.Entry;
 
 public class Node {
     // states
@@ -10,6 +9,7 @@ public class Node {
     private int status;
     private int id;
     private int leaderId;
+    private int msgCounter;
     private Node clockwiseNeighbour;
     private Node counterclockwiseNeighbour;
     private Message clockBuffMsg;
@@ -20,6 +20,7 @@ public class Node {
         this.id = id;
         isTerminated = false;
         status = UNKNOWN_STATUS;
+        msgCounter = 0;
         receivedMsg = new HashMap<>();
     }
 
@@ -27,12 +28,16 @@ public class Node {
         isTerminated = false;
         status = UNKNOWN_STATUS;
         leaderId = 0;
+        msgCounter = 0;
         receivedMsg = new HashMap<>();
     }
 
     public void sendClock() {
         if (clockBuffMsg != null) {
             clockwiseNeighbour.receiveMsg(this, clockBuffMsg);
+            msgCounter++;
+            // HSMessage msg = (HSMessage) clockBuffMsg;
+            // System.out.println(id + " sends clockwise to " + clockwiseNeighbour.getId() + " this: '" + msg.getData() + "' dir: " + msg.getDir());
         }
         clockBuffMsg = null;
     }
@@ -40,12 +45,16 @@ public class Node {
     public void sendCounterclock() {
         if (counterBuffMsg != null) {
             counterclockwiseNeighbour.receiveMsg(this, counterBuffMsg);
+            msgCounter++;
+            // HSMessage msg = (HSMessage) counterBuffMsg;
+            // System.out.println(id + " sends counterclockwise to " + counterclockwiseNeighbour.getId() + " this: '" + msg.getData() + "' dir: " + msg.getDir());
         }
         counterBuffMsg = null;
     }
 
     // this will override any message previously received fromNode
     public void receiveMsg(Node fromNode, Message msg) {
+        // System.out.println("\t" + id + " received '" + msg.getData() + "' from " + fromNode.getId());
         receivedMsg.put(fromNode, msg);
     }
 
@@ -74,6 +83,13 @@ public class Node {
      */
     public int getLeaderId() {
         return leaderId;
+    }
+
+    /**
+     * @return the msgCounter
+     */
+    public int getMsgCounter() {
+        return msgCounter;
     }
 
     /**
@@ -168,5 +184,3 @@ public class Node {
         return this.id == n.getId(); 
     } 
 } 
-
-}
