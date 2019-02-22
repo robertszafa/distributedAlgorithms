@@ -1,47 +1,33 @@
-import java.io.Console;
-import java.util.HashMap;
-import java.util.InputMismatchException;
-import java.util.Map.Entry;
+import java.util.stream.IntStream;
 
 import com.panayotis.gnuplot.JavaPlot;
 import com.panayotis.gnuplot.plot.DataSetPlot;  
 import com.panayotis.gnuplot.style.PlotStyle;
 import com.panayotis.gnuplot.style.Style;
-import com.panayotis.gnuplot.*;
-import com.panayotis.gnuplot.GNUPlotParameters;
-import com.panayotis.gnuplot.JavaPlot;
-import com.panayotis.gnuplot.dataset.FileDataSet;
-import com.panayotis.gnuplot.layout.StripeLayout;
-import com.panayotis.gnuplot.plot.AbstractPlot;
-import com.panayotis.gnuplot.plot.DataSetPlot;
-import com.panayotis.gnuplot.style.NamedPlotColor;
-import com.panayotis.gnuplot.style.PlotStyle;
-import com.panayotis.gnuplot.style.Style;
-import com.panayotis.gnuplot.swing.JPlot;
-import com.panayotis.gnuplot.terminal.PostscriptTerminal;
-import com.panayotis.gnuplot.utils.Debug;
 
 
 
 public class Simulation {
-    private static final String CLOCK_IDS_FLAG = "a"; // ascending ids
-    private static final String COUNTER_IDS_FLAG = "d"; // descending ids
-    private static final String RANDOM_IDS_FLAG = "r"; // descending ids
     private static final String USAGE = "\nUsage: java Simulation n a" + 
             "\n\tn - (> 1) max number of processors. Program will loop from 1 to n" + 
             "\n\ta - (> 1) multiplier of ids such that ids range from 1 to a*n" + 
             "\n\tf - flag for ordering of the ids:" + 
             "\n\t\t-a for clockwise ids\n\t\t-d for counterclockwise ids\n\t\tr - for random order";
+    private static final int repeatSizeofN = 100;
+    private static final String CLOCK_IDS_FLAG = "a"; // ascending ids
+    private static final String COUNTER_IDS_FLAG = "d"; // descending ids
+    private static final String RANDOM_IDS_FLAG = "r"; // descending ids
     private static String idOrderPlotTitle;
-    private static BidirectionalRing ring;
+    private static int idOrder; // state variable for the BididerectionalRing() constructor
     private static int n; // number of processors
     private static int a; // alpha - multiplier for id range
-    private static int idOrder; // state variable for the BididerectionalRing() constructor
-    /* int arrays to hold num of msgs and rounds for LCR and HS */
-    private static int[] msgCountLCR;
-    private static int[] roundCountLCR;
-    private static int[] msgCountHS;
-    private static int[] roundCountHS;
+    private static BidirectionalRing ring;
+    // int arrays to hold num of msgs and rounds. Will hold average case for random id assignment
+    private static int[] msgCountLCR, roundCountLCR, msgCountHS, roundCountHS;
+    // int arrays to hold num of msgs and rounds in best and worst cases for random id assignment
+    private static int[] msgCountLCRBest, roundCountLCRBest, msgCountHSBest, roundCountHSBest;
+    private static int[] msgCountLCRWorst, roundCountLCRWorst, msgCountHSWorst, roundCountHSWorst;
+    private static int[] tempMsgCountLCR, tempRoundCountLCR, tempMsgCountHS, tempRoundCountHS;
 
 
     public static void main(String[] args) {
@@ -53,44 +39,91 @@ public class Simulation {
             System.exit(1);
         }
 
-        msgCountLCR = new int[n];
-        roundCountLCR = new int[n];
-        msgCountHS = new int[n];
-        roundCountHS = new int[n];
+        initializeCountArrays();
 
         /* SIMULATION: loop through all ring sizes from 2 to n */
         for (int ringSize = 2; ringSize <= n; ringSize++) {
             // print progress for the user
             System.out.print("Progress " + (ringSize - 1) + " / " + n + "\r");
 
-            ring = new BidirectionalRing(ringSize, a, idOrder);
-            roundCountLCR[ringSize - 2] = ring.LCR();
-            msgCountLCR[ringSize - 2] = ring.getMsgCount();
+            if (idOrder == BidirectionalRing.RANDOM_IDS) {
+                for (int i = 0; i < repeatSizeofN; i++) {
+                    ring = new BidirectionalRing(ringSize, a, idOrder);
+                    tempRoundCountLCR[i] = ring.LCR();
+                    tempMsgCountLCR[i] = ring.getMsgCount();
 
-            // clear all info stored by the nodes. Leave only their id's
-            // nodes will be in the same state as when the ring was created the first time
-            ring.resetRing();
-            roundCountHS[ringSize - 2] = ring.HS();
-            msgCountHS[ringSize - 2] = ring.getMsgCount();
+                    ring.resetRing();
+                    tempRoundCountHS[i] = ring.HS();
+                    tempMsgCountHS[i] = ring.getMsgCount();
+                }
+                // average case
+                roundCountLCR[ringSize - 2] = IntStream.of(tempRoundCountLCR).sum() / repeatSizeofN;
+                msgCountLCR[ringSize - 2] = IntStream.of(tempMsgCountLCR).sum() / repeatSizeofN;
+                roundCountHS[ringSize - 2] = IntStream.of(tempRoundCountHS).sum() / repeatSizeofN;
+                msgCountHS[ringSize - 2] = IntStream.of(tempMsgCountHS).sum() / repeatSizeofN;
+                // worst case
+                roundCountLCRWorst[ringSize - 2] = IntStream.of(tempRoundCountLCR).max().getAsInt();
+                msgCountLCRWorst[ringSize - 2] = IntStream.of(tempMsgCountLCR).max().getAsInt();
+                roundCountHSWorst[ringSize - 2] = IntStream.of(tempRoundCountHS).max().getAsInt();
+                msgCountHSWorst[ringSize - 2] = IntStream.of(tempMsgCountHS).max().getAsInt();
+                // best case
+                roundCountLCRBest[ringSize - 2] = IntStream.of(tempRoundCountLCR).min().getAsInt();
+                msgCountLCRBest[ringSize - 2] = IntStream.of(tempMsgCountLCR).min().getAsInt();
+                roundCountHSBest[ringSize - 2] = IntStream.of(tempRoundCountHS).min().getAsInt();
+                msgCountHSBest[ringSize - 2] = IntStream.of(tempMsgCountHS).min().getAsInt();
+            }
+            else {
+                ring = new BidirectionalRing(ringSize, a, idOrder);
+                roundCountLCR[ringSize - 2] = ring.LCR();
+                msgCountLCR[ringSize - 2] = ring.getMsgCount();
+
+                // clear all info stored by the nodes. Leave only their id's
+                // nodes will be in the same state as when the ring was created the first time
+                ring.resetRing();
+                roundCountHS[ringSize - 2] = ring.HS();
+                msgCountHS[ringSize - 2] = ring.getMsgCount();
+            }
         }
 
         /* ANALYSIS */
-        // plot time complexity of LCR and HS
+        // plot Time Complexity of LCR and HS
         JavaPlot p = new JavaPlot();
         p.setTitle("Time Complexity " + idOrderPlotTitle);
-        plotGraph(p, "LCR", "Rounds", roundCountLCR);
-        plotGraph(p, "HS", "Rounds", roundCountHS);
+        if (idOrder == BidirectionalRing.RANDOM_IDS) {
+            plotGraph(p, "Average Case LCR", "Rounds", roundCountLCR);
+            plotGraph(p, "Worst Case LCR", "Rounds", roundCountLCRWorst);
+            plotGraph(p, "Best Case LCR", "Rounds", roundCountLCRBest);
+            plotGraph(p, "Average Case HS", "Rounds", roundCountHS);
+            plotGraph(p, "Worst Case HS", "Rounds", roundCountHSWorst);
+            plotGraph(p, "Best Case HS", "Rounds", roundCountHSBest);
+        }
+        else {
+            plotGraph(p, "LCR", "Rounds", roundCountLCR);
+            plotGraph(p, "HS", "Rounds", roundCountHS);
+        }
         p.addPlot("x");
         p.plot();
 
         // plot communication complexity of LCR and HS
         p = new JavaPlot();
         p.setTitle("Communication Complexity " + idOrderPlotTitle);
-        plotGraph(p, "LCR", "Messages", msgCountLCR);
-        plotGraph(p, "HS", "Messages", msgCountHS);
+        if (idOrder == BidirectionalRing.RANDOM_IDS) {
+            plotGraph(p, "Average Case LCR", "Messages", msgCountLCR);
+            plotGraph(p, "Worst Case LCR", "Messages", msgCountLCRWorst);
+            plotGraph(p, "Best Case LCR", "Messages", msgCountLCRBest);
+            plotGraph(p, "Average Case HS", "Messages", msgCountHS);
+            plotGraph(p, "Worst Case HS", "Messages", msgCountHSWorst);
+            plotGraph(p, "Best Case HS", "Messages", msgCountHSBest);
+        }
+        else {
+            plotGraph(p, "LCR", "Messages", msgCountLCR);
+            plotGraph(p, "HS", "Messages", msgCountHS);
+        }
         p.addPlot("x * x");
         p.plot();
     }
+
+
 
     /**
      * 
@@ -150,6 +183,27 @@ public class Simulation {
         }
         else {
             throw new NumberFormatException();
+        }
+    }
+
+    private static void initializeCountArrays() {
+        msgCountLCR = new int[n];
+        roundCountLCR = new int[n];
+        msgCountHS = new int[n];
+        roundCountHS = new int[n];
+        if (idOrder == BidirectionalRing.RANDOM_IDS) {
+            msgCountLCRBest = new int[n];
+            roundCountLCRBest = new int[n];
+            msgCountHSBest = new int[n];
+            roundCountHSBest = new int[n];
+            msgCountLCRWorst = new int[n];
+            roundCountLCRWorst = new int[n];
+            msgCountHSWorst = new int[n];
+            roundCountHSWorst = new int[n];
+            tempMsgCountLCR = new int[repeatSizeofN];
+            tempRoundCountLCR = new int[repeatSizeofN];
+            tempMsgCountHS = new int[repeatSizeofN];
+            tempRoundCountHS = new int[repeatSizeofN];
         }
     }
 
