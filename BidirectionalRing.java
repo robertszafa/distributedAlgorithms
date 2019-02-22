@@ -11,11 +11,6 @@ public class BidirectionalRing {
     
     public BidirectionalRing(int n, int a, int idAssignment) {
         nodes = createBiderectionalRing(n, a, idAssignment);
-        System.out.println("Set of nodes: ");
-        for (Node node : nodes) {
-            System.out.print(node.getId() + " ");
-        }
-        System.out.println();
     }
 
 
@@ -61,7 +56,7 @@ public class BidirectionalRing {
      * 
      * @return number of rounds after which the algorithm terminates
      */
-    public int lcrAlgorithm() {
+    public int LCR() {
         int round = 1;
 
         roundLoop:
@@ -140,7 +135,7 @@ public class BidirectionalRing {
      * 
      * @return number of rounds after which the algorithm terminates
      */
-    public int hsAlgorithm() {
+    public int HS() {
         int IN_DIR = HSMessage.IN_DIR;
         int OUT_DIR = HSMessage.OUT_DIR;
         int phase = 0;
