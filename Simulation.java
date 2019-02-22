@@ -21,6 +21,7 @@ public class Simulation {
     private static int idOrder; // state variable for the BididerectionalRing() constructor
     private static int n; // number of processors
     private static int a; // alpha - multiplier for id range
+    private static int errorCountLCR, errorCountHS; // count when an incorrect leader was elected
     private static BidirectionalRing ring;
     // int arrays to hold num of msgs and rounds. Will hold average case for random id assignment
     private static int[] msgCountLCR, roundCountLCR, msgCountHS, roundCountHS;
@@ -40,21 +41,27 @@ public class Simulation {
         }
 
         initializeCountArrays();
+        errorCountLCR = 0;
+        errorCountHS = 0;
 
         /* SIMULATION: loop through all ring sizes from 2 to n */
         for (int ringSize = 2; ringSize <= n; ringSize++) {
             // print progress for the user
-            System.out.print("Progress " + (ringSize - 1) + " / " + n + "\r");
+            System.out.print("Progress " + (ringSize) + "/" + n + 
+                                "  ||  LCR error rate " + errorCountLCR + "/" + n +
+                                "  ||  HS error rate " + errorCountHS + "/" + n + "\r");
 
             if (idOrder == BidirectionalRing.RANDOM_IDS) {
                 for (int i = 0; i < repeatSizeofN; i++) {
                     ring = new BidirectionalRing(ringSize, a, idOrder);
                     tempRoundCountLCR[i] = ring.LCR();
                     tempMsgCountLCR[i] = ring.getMsgCount();
+                    errorCountLCR = (ring.hasCorrectLeader()) ? errorCountLCR + 1 : errorCountLCR;
 
                     ring.resetRing();
                     tempRoundCountHS[i] = ring.HS();
                     tempMsgCountHS[i] = ring.getMsgCount();
+                    errorCountHS = (ring.hasCorrectLeader()) ? errorCountHS + 1 : errorCountHS;
                 }
                 // average case
                 roundCountLCR[ringSize - 2] = IntStream.of(tempRoundCountLCR).sum() / repeatSizeofN;
@@ -76,12 +83,14 @@ public class Simulation {
                 ring = new BidirectionalRing(ringSize, a, idOrder);
                 roundCountLCR[ringSize - 2] = ring.LCR();
                 msgCountLCR[ringSize - 2] = ring.getMsgCount();
+                errorCountLCR = (ring.hasCorrectLeader()) ? errorCountLCR : errorCountLCR + 1;
 
                 // clear all info stored by the nodes. Leave only their id's
                 // nodes will be in the same state as when the ring was created the first time
                 ring.resetRing();
                 roundCountHS[ringSize - 2] = ring.HS();
                 msgCountHS[ringSize - 2] = ring.getMsgCount();
+                errorCountHS = (ring.hasCorrectLeader()) ? errorCountHS : errorCountHS + 1;
             }
         }
 
@@ -121,6 +130,9 @@ public class Simulation {
         }
         p.addPlot("x * x");
         p.plot();
+
+
+        System.out.println();
     }
 
 
