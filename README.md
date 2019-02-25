@@ -4,10 +4,10 @@ All code is in the /src directory
 javac -cp JavaPlot.jar *.java
 
 ### Run 
-java -cp JavaPlot.jar:. Simulation (number of processors) (alpha, multiplyier for id assigmnet) (type of id assignment)
-number of processors - integer greater than 1
-alpha - integer at least or greater than 1
-type of id assignment - 'r' for random, 'a' for clockwise ascending, 'd' for counterclockwise ascending
+java -cp JavaPlot.jar:. Simulation n a -f
+n - integer greater than 1
+a - integer at least or greater than 1
+f - flag for id assignment. 'r' for random, 'a' for clockwise ascending, 'd' for counterclockwise ascending
 
 
 #### Example

@@ -19,10 +19,10 @@ import com.panayotis.gnuplot.style.PlotStyle;
 public class Simulation {
     /* CONSTANTS */
     private static final String USAGE = "\nUsage: java Simulation n a" + 
-            "\n\tn - (> 1) max number of processors. Program will loop from 1 to n" + 
-            "\n\ta - (> 1) multiplier of ids such that ids range from 1 to a*n" + 
+            "\n\tn - (int >1) max number of processors. Program will loop from 1 to n" + 
+            "\n\ta - (int >0) multiplier of ids such that ids range from 1 to a*n" + 
             "\n\tf - flag for ordering of the ids:" + 
-            "\n\t\t-a for clockwise ids\n\t\t-d for counterclockwise ids\n\t\tr - for random order";
+            "\n\t\t-a for clockwise ids\n\t\t-d for counterclockwise ids\n\t\t-r for random order";
     private static final int repeatSizeofN = 100; // in case of random id assignment
     private static final String CLOCK_IDS_FLAG = "a"; // ascending ids
     private static final String COUNTER_IDS_FLAG = "d"; // descending ids
@@ -158,11 +158,14 @@ public class Simulation {
      * @param data
      */
     private static void plotGraph(JavaPlot p, String title, String ylabel, int[] data) {
-        // convert data to 2D array
-        int[][] data2D = new int[data.length + 1][1];
         for (int i = 0; i < data.length; i++) {
-            data2D[i + 1] = new int[1];
-            data2D[i + 1][0] = data[i];
+            System.out.println(i + ": " + data[i]);
+        }
+        // convert data to 2D array
+        int[][] data2D = new int[data.length + 2][1];
+        for (int i = 0; i < data.length; i++) {
+            data2D[i + 2] = new int[1];
+            data2D[i + 2][0] = data[i];
         }
 
         p.getAxis("x").setBoundaries(0, n);
@@ -193,7 +196,7 @@ public class Simulation {
         n = Integer.parseInt(args[0]);
         a = Integer.parseInt(args[1]);
 
-        if (n < 1 || a < 1) {
+        if (n < 2 || a < 1) {
             throw new NumberFormatException();
         }
 
