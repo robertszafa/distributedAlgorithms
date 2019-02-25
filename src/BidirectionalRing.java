@@ -1,3 +1,4 @@
+
 /**
  * Robert Szafarczyk, February 2019, id: 201307211
  * 
@@ -7,14 +8,17 @@
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+
 
 public class BidirectionalRing {
     public static final int RANDOM_IDS = 1;
     public static final int CLOCK_ORDERED_IDS = 2;
     public static final int COUNTER_ORDERED_IDS = 3;
+    private int idAssignment;
     private ArrayList<Node> nodes;
     
     /**
@@ -25,6 +29,7 @@ public class BidirectionalRing {
      */
     public BidirectionalRing(int n, int a, int idAssignment) {
         nodes = createBiderectionalRing(n, a, idAssignment);
+        this.idAssignment = idAssignment;
     }
 
 
@@ -295,17 +300,7 @@ public class BidirectionalRing {
      */
     private ArrayList<Node> createBiderectionalRing(int n, int a, int idAssignment) {
         ArrayList<Node> ring = new ArrayList<>();
-        ArrayList<Integer> ids = new ArrayList<>();
-
-        if (idAssignment == RANDOM_IDS) {
-            ids = getRandomIds(n, n*a);
-        } 
-        else if (idAssignment == CLOCK_ORDERED_IDS) {
-            ids = getIncreasingIds(n);
-        }
-        else if (idAssignment == COUNTER_ORDERED_IDS) {
-            ids = getDecreasingIds(n);
-        }
+        ArrayList<Integer> ids = getIds(n, n*a);
 
         // create nodes
         for (int id : ids) {
@@ -325,9 +320,9 @@ public class BidirectionalRing {
     /**
      * @param numberOfIds
      * @param maxId
-     * @return ArrayList of random integers ranging from 1 to maxId
+     * @return ArrayList of 'idAssignment' integers ranging from 1 to maxId
      */
-    private ArrayList<Integer> getRandomIds(int numberOfIds, int maxId) {
+    private ArrayList<Integer> getIds(int numberOfIds, int maxId) {
         Set<Integer> idsSet = new HashSet<>();
         Random random = new Random();
         int nextId;
@@ -336,34 +331,15 @@ public class BidirectionalRing {
             nextId = random.nextInt(maxId) + 1;
             idsSet.add(nextId);
         }
+        ArrayList<Integer> ids = new ArrayList<Integer>(idsSet);
 
-        return new ArrayList<>(idsSet);
-    }
-
-    /**
-     * @param numberOfIds
-     * @return ArrayList of increasing integers ranging from 1 to numberOfIds
-     */
-    private ArrayList<Integer> getIncreasingIds(int numberOfIds) {
-        ArrayList<Integer> ids = new ArrayList<Integer>();		
-
-        for (int id = 1; id <= numberOfIds; id++) {
-            ids.add(id);
+        if (idAssignment == CLOCK_ORDERED_IDS) {
+            ids.sort(null);
         }
-
-        return ids;
-    }
-
-    /**
-     * @param numberOfIds
-     * @return ArrayList of decreasing integers ranging from 1 to numberOfIds
-     */
-    private ArrayList<Integer> getDecreasingIds(int numberOfIds) {
-        ArrayList<Integer> ids = new ArrayList<Integer>();		
-
-        for (int id = numberOfIds; id > 0; id--) {
-            ids.add(id);
+        else if (idAssignment == COUNTER_ORDERED_IDS) {
+            ids.sort(Collections.reverseOrder());		
         }
+        // else random order, don't sort
 
         return ids;
     }
