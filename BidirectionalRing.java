@@ -1,3 +1,11 @@
+/**
+ * Robert Szafarczyk, February 2019, id: 201307211
+ * 
+ * BidirectionalRing is a wrapper class for all nodes that form a ring. This class has access to 
+ * all the nodes, and initializes the LCR and HS algorithms. It has also methods to check 
+ * correctness and performance of the algorithms.
+ */
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
@@ -9,39 +17,14 @@ public class BidirectionalRing {
     public static final int COUNTER_ORDERED_IDS = 3;
     private ArrayList<Node> nodes;
     
+    /**
+     * 
+     * @param n number of processors
+     * @param a alpha, multiplyier for ids
+     * @param idAssignment random, clockwise or counterclockwise id assignment
+     */
     public BidirectionalRing(int n, int a, int idAssignment) {
         nodes = createBiderectionalRing(n, a, idAssignment);
-    }
-
-
-    /**
-     * @return true if all nodes elected the same, correct leader
-     */
-    public boolean hasCorrectLeader() {
-        int leaderId = nodes.get(0).getLeaderId();
-        for (Node n : nodes) {
-            if (n.getLeaderId() != leaderId || n.getId() > leaderId) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * @return total number of messages transmitted by all nodes 
-     */
-    public int getMsgCount() {
-        int msgCount = 0;
-        for (Node n : nodes) {
-            msgCount += n.getMsgCounter();
-        }
-
-        return msgCount;
-    }
-
-    public void resetRing() {
-        nodes.forEach(n -> n.resetNode());  
     }
 
 
@@ -275,6 +258,37 @@ public class BidirectionalRing {
 
 
     /**
+     * @return true if all nodes elected the same, correct leader
+     */
+    public boolean hasCorrectLeader() {
+        int leaderId = nodes.get(0).getLeaderId();
+        for (Node n : nodes) {
+            if (n.getLeaderId() != leaderId || n.getId() > leaderId) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return total number of messages transmitted by all nodes 
+     */
+    public int getMsgCount() {
+        int msgCount = 0;
+        for (Node n : nodes) {
+            msgCount += n.getMsgCounter();
+        }
+
+        return msgCount;
+    }
+
+    public void resetRing() {
+        nodes.forEach(n -> n.resetNode());  
+    }
+
+
+    /**
      * @param n
      * @param a
      * @return ArrayList<Node> of created, interconnected nodes that form a ring
@@ -352,33 +366,5 @@ public class BidirectionalRing {
         }
 
         return ids;
-    }
-
-    /**
-     * @param id
-     * @return node from nodes given its id
-     */
-    private Node getNode(int id) {
-        for (Node n : nodes) {
-            if (n.getId() == id) {
-                return n;
-            }
-        }
-
-        return null;
-    }
-
-
-    /**
-     * @return leader node from nodes
-     */
-    private Node getLeaderNode() {
-        for (Node n : nodes) {
-            if (n.getStatus() == Node.LEADER_STATUS) {
-                return n;
-            }
-        }
-
-        return null;
     }
 }

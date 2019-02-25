@@ -1,22 +1,34 @@
-import java.util.stream.IntStream;
+/**
+ * Robert Szafarczyk, February 2019, id: 201307211
+ * Distributed Systems COMP212 - 2019 - CA Assignment 1. Coordination and Leader Election.
+ * Simulating and Evaluating Distributed Protocols in Java.
+ * 
+ * Simulation accepts parameters to create a ring network and simulates the HS and LCR leader 
+ * election algorithms on the created network. After the simulation, the class presents an analysis 
+ * of the time and communication complexity in form of a plot. 
+ */
 
+import java.util.stream.IntStream;
 import com.panayotis.gnuplot.JavaPlot;
-import com.panayotis.gnuplot.plot.DataSetPlot;  
-import com.panayotis.gnuplot.style.PlotStyle;
+import com.panayotis.gnuplot.plot.DataSetPlot;
 import com.panayotis.gnuplot.style.Style;
+import com.panayotis.gnuplot.style.PlotStyle;
 
 
 
 public class Simulation {
+    /* CONSTANTS */
     private static final String USAGE = "\nUsage: java Simulation n a" + 
             "\n\tn - (> 1) max number of processors. Program will loop from 1 to n" + 
             "\n\ta - (> 1) multiplier of ids such that ids range from 1 to a*n" + 
             "\n\tf - flag for ordering of the ids:" + 
             "\n\t\t-a for clockwise ids\n\t\t-d for counterclockwise ids\n\t\tr - for random order";
-    private static final int repeatSizeofN = 100;
+    private static final int repeatSizeofN = 100; // in case of random id assignment
     private static final String CLOCK_IDS_FLAG = "a"; // ascending ids
     private static final String COUNTER_IDS_FLAG = "d"; // descending ids
     private static final String RANDOM_IDS_FLAG = "r"; // descending ids
+
+    /* VARIABLES */
     private static String idOrderPlotTitle;
     private static int idOrder; // state variable for the BididerectionalRing() constructor
     private static int n; // number of processors
@@ -48,20 +60,21 @@ public class Simulation {
         for (int ringSize = 2; ringSize <= n; ringSize++) {
             // print progress for the user
             System.out.print("Progress " + (ringSize) + "/" + n + 
-                                "  ||  LCR error rate " + errorCountLCR + "/" + n +
-                                "  ||  HS error rate " + errorCountHS + "/" + n + "\r");
+                                "  ||  LCR error count: " + errorCountLCR  +
+                                "  ||  HS error count: " + errorCountHS + "\r");
 
+            // RANDOM IDS -> repeat size of ring to get best, worst and average case
             if (idOrder == BidirectionalRing.RANDOM_IDS) {
                 for (int i = 0; i < repeatSizeofN; i++) {
                     ring = new BidirectionalRing(ringSize, a, idOrder);
                     tempRoundCountLCR[i] = ring.LCR();
                     tempMsgCountLCR[i] = ring.getMsgCount();
-                    errorCountLCR = (ring.hasCorrectLeader()) ? errorCountLCR + 1 : errorCountLCR;
+                    errorCountLCR = (ring.hasCorrectLeader()) ? errorCountLCR : errorCountLCR + 1;
 
                     ring.resetRing();
                     tempRoundCountHS[i] = ring.HS();
                     tempMsgCountHS[i] = ring.getMsgCount();
-                    errorCountHS = (ring.hasCorrectLeader()) ? errorCountHS + 1 : errorCountHS;
+                    errorCountHS = (ring.hasCorrectLeader()) ? errorCountHS : errorCountHS + 1;
                 }
                 // average case
                 roundCountLCR[ringSize - 2] = IntStream.of(tempRoundCountLCR).sum() / repeatSizeofN;
@@ -95,7 +108,7 @@ public class Simulation {
         }
 
         /* ANALYSIS */
-        // plot Time Complexity of LCR and HS
+        // plot Time Complexity of LCR and HS. Add y = x for comparison
         JavaPlot p = new JavaPlot();
         p.setTitle("Time Complexity " + idOrderPlotTitle);
         if (idOrder == BidirectionalRing.RANDOM_IDS) {
@@ -113,7 +126,7 @@ public class Simulation {
         p.addPlot("x");
         p.plot();
 
-        // plot communication complexity of LCR and HS
+        // plot communication complexity of LCR and HS, add y = x*x for comparison
         p = new JavaPlot();
         p.setTitle("Communication Complexity " + idOrderPlotTitle);
         if (idOrder == BidirectionalRing.RANDOM_IDS) {
@@ -167,6 +180,7 @@ public class Simulation {
     }
 
     /**
+     * Throws a NumberFormatException.
      * Creates a Bidirectional ring given parameters from user's input.
      * 
      * @param args

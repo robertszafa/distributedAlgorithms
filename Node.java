@@ -1,7 +1,14 @@
+/**
+ * Robert Szafarczyk, February 2019, id: 201307211
+ * 
+ * Node class describes the local state of the node, its memory and methods to communicate with
+ * its neighbours.
+ */
+
 import java.util.HashMap;
 
 public class Node {
-    // states
+    // Node states
     public static final int LEADER_STATUS = -1;
     public static final int UNKNOWN_STATUS = 0;
 
@@ -9,13 +16,17 @@ public class Node {
     private int status;
     private int id;
     private int leaderId;
-    private int msgCounter;
+    private int msgCounter; // count all send messages
     private Node clockwiseNeighbour;
     private Node counterclockwiseNeighbour;
     private Message clockBuffMsg;
     private Message counterBuffMsg;
     private HashMap<Node, Message> receivedMsg;
 
+    /**
+     * 
+     * @param id of the node
+     */
     public Node (int id) {
         this.id = id;
         isTerminated = false;
@@ -24,6 +35,9 @@ public class Node {
         receivedMsg = new HashMap<>();
     }
 
+    /**
+     * flush all memory, put into uknown state, node not terminated
+     */
     public void resetNode() {
         isTerminated = false;
         status = UNKNOWN_STATUS;
@@ -32,29 +46,32 @@ public class Node {
         receivedMsg = new HashMap<>();
     }
 
+    /**
+     * will only send if there is a message in the buffer to the clockwise neighbour
+     */
     public void sendClock() {
         if (clockBuffMsg != null) {
             clockwiseNeighbour.receiveMsg(this, clockBuffMsg);
             msgCounter++;
-            // HSMessage msg = (HSMessage) clockBuffMsg;
-            // System.out.println(id + " sends clockwise to " + clockwiseNeighbour.getId() + " this: '" + msg.getData() + "' dir: " + msg.getDir());
         }
         clockBuffMsg = null;
     }
 
+    /**
+     * will only send if there is a message in the buffer to the counterclockwise neighbour
+     */
     public void sendCounterclock() {
         if (counterBuffMsg != null) {
             counterclockwiseNeighbour.receiveMsg(this, counterBuffMsg);
             msgCounter++;
-            // HSMessage msg = (HSMessage) counterBuffMsg;
-            // System.out.println(id + " sends counterclockwise to " + counterclockwiseNeighbour.getId() + " this: '" + msg.getData() + "' dir: " + msg.getDir());
         }
         counterBuffMsg = null;
     }
 
     // this will override any message previously received fromNode
     public void receiveMsg(Node fromNode, Message msg) {
-        // System.out.println("\t" + id + " received '" + msg.getData() + "' from " + fromNode.getId());
+        // this will override the previous rcvd message -> 
+        // a node will never have access to more than one message from each neighbour
         receivedMsg.put(fromNode, msg);
     }
 

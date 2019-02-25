@@ -1,6 +1,10 @@
 public class Message {
     int data;
     
+    /**
+     * 
+     * @param data
+     */
     public Message(int data) {
         this.data = data;
     }
