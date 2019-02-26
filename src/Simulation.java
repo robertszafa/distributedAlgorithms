@@ -107,6 +107,11 @@ public class Simulation {
             }
         }
 
+        // System.out.println("LCR communication complexity for n = 100");
+        // System.out.println("Worst case: " + msgCountLCRWorst[50]);
+        // System.out.println("Best case: " + msgCountLCRBest[50]);
+        // System.out.println("LCR Average case: " + msgCountLCR[50]);
+
         /* ANALYSIS */
         // plot Time Complexity of LCR and HS. Add y = x for comparison
         JavaPlot p = new JavaPlot();
@@ -123,7 +128,7 @@ public class Simulation {
             plotGraph(p, "LCR", "Rounds", roundCountLCR);
             plotGraph(p, "HS", "Rounds", roundCountHS);
         }
-        p.addPlot("x");
+        // p.addPlot("x");
         p.plot();
 
         // plot communication complexity of LCR and HS, add y = x*x for comparison
@@ -141,13 +146,12 @@ public class Simulation {
             plotGraph(p, "LCR", "Messages", msgCountLCR);
             plotGraph(p, "HS", "Messages", msgCountHS);
         }
+        p.addPlot("x * log(x)");
         p.addPlot("x * x");
         p.plot();
 
-
         System.out.println();
     }
-
 
 
     /**
@@ -158,9 +162,6 @@ public class Simulation {
      * @param data
      */
     private static void plotGraph(JavaPlot p, String title, String ylabel, int[] data) {
-        for (int i = 0; i < data.length; i++) {
-            System.out.println(i + ": " + data[i]);
-        }
         // convert data to 2D array
         int[][] data2D = new int[data.length + 2][1];
         for (int i = 0; i < data.length; i++) {
@@ -205,7 +206,7 @@ public class Simulation {
             idOrderPlotTitle = "(clockwise ids)";
         } else if (args[2].contains(COUNTER_IDS_FLAG)) {
             idOrder = BidirectionalRing.COUNTER_ORDERED_IDS;
-            idOrderPlotTitle = "(counterclockwise ids)";
+            idOrderPlotTitle = "(counter clockwise ids)";
         } else if (args[2].contains(RANDOM_IDS_FLAG)) {
             idOrder = BidirectionalRing.RANDOM_IDS;
             idOrderPlotTitle = "(random ids)";

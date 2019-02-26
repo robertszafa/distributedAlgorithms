@@ -7,6 +7,7 @@
 
 import java.util.HashMap;
 
+
 public class Node {
     // Node states
     public static final int LEADER_STATUS = -1;
@@ -16,6 +17,7 @@ public class Node {
     private int status;
     private int id;
     private int leaderId;
+    private int phaseHS;
     private int msgCounter; // count all send messages
     private Node clockwiseNeighbour;
     private Node counterclockwiseNeighbour;
@@ -32,6 +34,9 @@ public class Node {
         isTerminated = false;
         status = UNKNOWN_STATUS;
         msgCounter = 0;
+        phaseHS = 0;
+        clockBuffMsg = null;
+        counterBuffMsg = null;
         receivedMsg = new HashMap<>();
     }
 
@@ -42,8 +47,11 @@ public class Node {
         isTerminated = false;
         status = UNKNOWN_STATUS;
         leaderId = 0;
+        phaseHS = 0;
         msgCounter = 0;
-        receivedMsg = new HashMap<>();
+        clockBuffMsg = null;
+        counterBuffMsg = null;
+        receivedMsg.clear();
     }
 
     /**
@@ -88,6 +96,22 @@ public class Node {
     public Message getRcvdMsgFromCounterclock() {
         return receivedMsg.get(counterclockwiseNeighbour);
     }
+
+    public void flushRcvdMsgs() {
+        receivedMsg.clear();
+    }
+
+    /**
+     * @return the phaseHS
+     */
+    public int getPhaseHS() {
+        return phaseHS;
+    }
+
+    public void incPhase() {
+        phaseHS++;
+    }
+
     /**
      * @return the id
      */
