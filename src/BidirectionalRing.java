@@ -1,4 +1,3 @@
-
 /**
  * Robert Szafarczyk, February 2019, id: 201307211
  * 
@@ -136,68 +135,27 @@ public class BidirectionalRing {
 
         roundLoop:
         for (;;round++) {
-            // System.out.println("ROUND " + round);
             nodesLoop: // MESSAGE GENERATION
             for (Node n : nodes) {
                 if (!n.isTerminated()) {
                     int myId = n.getId();
 
                     if (round == 1) {
-                        // MESSAGE GENERATION -> generate <myIDi, out, 1> for clock- and counterclock
-                        n.setClockBuffMsg(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhaseHS())));
-                        n.setCounterBuffMsg(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhaseHS())));
+                        n.setClockBuffMsg(
+                                    new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhase())));
+                        n.setCounterBuffMsg(
+                                    new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhase())));
                         continue nodesLoop; // to next node
                     }
                     // else round > 1
 
-                    // incoming messages from neighbours
+                    // incoming messages from neighbours. If a message is null, it is ignored.
                     HSMessage fromCounter = (HSMessage) n.getRcvdMsgFromCounterclock();
                     HSMessage fromClock = (HSMessage) n.getRcvdMsgFromClock();
-                    n.flushRcvdMsgs();
+                    n.flushRcvdMsgs(); // only consider the received msgs in this round
 
 
-                    /** TERMINATION STAGE: UPON RECEIVING A LEADER MESSAGE */
-                    // from clockwise neighbour
-                    if (fromClock != null && fromClock.isLeaderMsg() && fromClock.getHopCount() > 1) {
-                        HSLeaderMessage fromClockLeader = (HSLeaderMessage) fromClock;
-                        n.setLeaderId(fromClockLeader.getLeaderId());
-                        n.setCounterBuffMsg(new HSLeaderMessage(fromClockLeader.getLeaderId(), 
-                                                                    fromClock.getHopCount() - 1));
-                        n.terminate();
-                    }
-                    else if (fromClock != null && fromClock.isLeaderMsg() && fromClock.getHopCount() == 1) {
-                        HSLeaderMessage fromClockLeader = (HSLeaderMessage) fromClock;
-                        n.setLeaderId(fromClockLeader.getLeaderId());
-                        n.terminate();
-                    }
-                    // from counterclockwise neighbour
-                    if (fromCounter != null && fromCounter.isLeaderMsg() && fromCounter.getHopCount() > 1) {
-                        HSLeaderMessage fromCounterLeader = (HSLeaderMessage) fromCounter;
-                        n.setLeaderId(fromCounterLeader.getLeaderId());
-                        n.setClockBuffMsg(new HSLeaderMessage(fromCounterLeader.getLeaderId(),
-                                                                    fromCounter.getHopCount() - 1));
-                        n.terminate();
-                    }
-                    else if (fromCounter != null && fromCounter.isLeaderMsg() && fromCounter.getHopCount() == 1) {
-                        HSLeaderMessage fromCounterLeader = (HSLeaderMessage) fromCounter;
-                        n.setLeaderId(fromCounterLeader.getLeaderId());
-                        n.terminate();
-                    }
-                    
-
-                    /** UPON RECEIVING A MESSAGE FROM CLOCK- AND COUNTERCLOCK WITH 
-                     * DIR = IN AND inId = myId AND hoCount = 1 -> START NEXT PHASE */
-                    if (fromClock != null && fromCounter != null && 
-                            fromClock.getDir() == IN_DIR && fromCounter.getDir() == IN_DIR &&
-                            fromClock.getId() == myId && fromCounter.getId() == myId &&
-                            fromClock.getHopCount() == 1 && fromCounter.getHopCount() == 1) {
-                        n.incPhase();
-                        n.setClockBuffMsg(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhaseHS())));
-                        n.setCounterBuffMsg(new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhaseHS())));
-                    }
-
-
-                    /** UPON RECEIVING A MESSAGE FROM COUNTERCLOCKWISE NEIGHBOUR */
+                     /** UPON RECEIVING A MESSAGE FROM COUNTERCLOCKWISE NEIGHBOUR */
                     if (fromCounter != null && fromCounter.getDir() == OUT_DIR) {
                         if (fromCounter.getId() > myId && fromCounter.getHopCount() > 1) {
                             n.setClockBuffMsg(new HSMessage(fromCounter.getId(), OUT_DIR, 
@@ -210,17 +168,17 @@ public class BidirectionalRing {
                             n.setStatus(Node.LEADER_STATUS);
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
-                            // hopCount = (2^phase - getHopCount()) / 2 for both neighbours
-                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
-                                (int) Math.round((Math.pow(2, n.getPhaseHS()) - fromCounter.getHopCount()) / 2)));
-                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
-                                (int) Math.round((Math.pow(2, n.getPhaseHS()) - fromCounter.getHopCount()) / 2)));
+                            // hopCount = (2^phase - getHopCount()) / 2 rounded up
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
+                                    Math.pow(2, n.getPhase()) - fromCounter.getHopCount()) / 2)));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
+                                    Math.pow(2, n.getPhase()) - fromCounter.getHopCount()) / 2)));
                             n.terminate();
                             continue nodesLoop; // to next node after this terminates
                         }
                     }
-                    else if (fromCounter != null && fromCounter.getDir() == IN_DIR && fromCounter.getId() != myId && 
-                                                                fromCounter.getHopCount() == 1) {
+                    else if (fromCounter != null && fromCounter.getDir() == IN_DIR && 
+                                fromCounter.getId() != myId && fromCounter.getHopCount() == 1) {
                         n.setClockBuffMsg(new HSMessage(fromCounter.getId(), IN_DIR, 1));
                     }
                     
@@ -237,18 +195,65 @@ public class BidirectionalRing {
                             n.setStatus(Node.LEADER_STATUS);
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
-                            // hopCount = (2^phase - getHopCount()) / 2 for both neighbours
-                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
-                                (int) Math.round((Math.pow(2, n.getPhaseHS()) - fromClock.getHopCount()) / 2)));
-                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
-                                (int) Math.round((Math.pow(2, n.getPhaseHS()) - fromClock.getHopCount()) / 2)));
+                            // hopCount = (2^phase - getHopCount()) / 2 rounded up
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
+                                        Math.pow(2, n.getPhase()) - fromClock.getHopCount()) / 2)));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
+                                        Math.pow(2, n.getPhase()) - fromClock.getHopCount()) / 2)));
                             n.terminate();
                             continue nodesLoop; // to next node after this terminates
                         }
                     }
-                    else if (fromClock != null && fromClock.getDir() == IN_DIR && fromClock.getId() != myId && 
-                                                                fromClock.getHopCount() == 1) {
+                    else if (fromClock != null && fromClock.getDir() == IN_DIR && 
+                                fromClock.getId() != myId && fromClock.getHopCount() == 1) {
                         n.setCounterBuffMsg(new HSMessage(fromClock.getId(), IN_DIR, 1));
+                    }
+
+
+                    /** TERMINATION STAGE: UPON RECEIVING A LEADER MESSAGE */
+                    // from clockwise neighbour
+                    if (fromClock != null && fromClock.isLeaderMsg() && 
+                            fromClock.getHopCount() > 1) {
+                        HSLeaderMessage fromClockLeader = (HSLeaderMessage) fromClock;
+                        n.setLeaderId(fromClockLeader.getLeaderId());
+                        n.setCounterBuffMsg(new HSLeaderMessage(fromClockLeader.getLeaderId(), 
+                                                                    fromClock.getHopCount() - 1));
+                        n.terminate();
+                    }
+                    else if (fromClock != null && fromClock.isLeaderMsg() && 
+                            fromClock.getHopCount() == 1) {
+                        HSLeaderMessage fromClockLeader = (HSLeaderMessage) fromClock;
+                        n.setLeaderId(fromClockLeader.getLeaderId());
+                        n.terminate();
+                    }
+                    // from counterclockwise neighbour
+                    if (fromCounter != null && fromCounter.isLeaderMsg() && 
+                            fromCounter.getHopCount() > 1) {
+                        HSLeaderMessage fromCounterLeader = (HSLeaderMessage) fromCounter;
+                        n.setLeaderId(fromCounterLeader.getLeaderId());
+                        n.setClockBuffMsg(new HSLeaderMessage(fromCounterLeader.getLeaderId(),
+                                                                    fromCounter.getHopCount() - 1));
+                        n.terminate();
+                    }
+                    else if (fromCounter != null && fromCounter.isLeaderMsg() && 
+                            fromCounter.getHopCount() == 1) {
+                        HSLeaderMessage fromCounterLeader = (HSLeaderMessage) fromCounter;
+                        n.setLeaderId(fromCounterLeader.getLeaderId());
+                        n.terminate();
+                    }
+                    
+
+                    /** PHASE++ STAGE: UPON RECEIVING A MESSAGE FROM CLOCK- AND COUNTERCLOCK WITH 
+                     * DIR = IN AND inId = myId AND hoCount = 1 -> START NEXT PHASE */
+                    if (fromClock != null && fromCounter != null && 
+                            fromClock.getDir() == IN_DIR && fromCounter.getDir() == IN_DIR &&
+                            fromClock.getId() == myId && fromCounter.getId() == myId &&
+                            fromClock.getHopCount() == 1 && fromCounter.getHopCount() == 1) {
+                        n.incPhase();
+                        n.setClockBuffMsg(
+                                    new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhase())));
+                        n.setCounterBuffMsg(
+                                    new HSMessage(myId, OUT_DIR, (int) Math.pow(2, n.getPhase())));
                     }
                 }
             }

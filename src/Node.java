@@ -35,8 +35,6 @@ public class Node {
         status = UNKNOWN_STATUS;
         msgCounter = 0;
         phaseHS = 0;
-        clockBuffMsg = null;
-        counterBuffMsg = null;
         receivedMsg = new HashMap<>();
     }
 
@@ -84,30 +82,36 @@ public class Node {
     }
 
     /**
-     * @return the receivedMsg
+     * @return the receivedMsg from clockwise neighbour
      */
     public Message getRcvdMsgFromClock() {
         return receivedMsg.get(clockwiseNeighbour);
     }
 
     /**
-     * @return the receivedMsg
+     * @return the receivedMsg from counter clockwise neighbour
      */
     public Message getRcvdMsgFromCounterclock() {
         return receivedMsg.get(counterclockwiseNeighbour);
     }
 
+    /**
+     * nullify the received msgs buffer
+     */
     public void flushRcvdMsgs() {
         receivedMsg.clear();
     }
 
     /**
-     * @return the phaseHS
+     * @return the current phaseHS
      */
-    public int getPhaseHS() {
+    public int getPhase() {
         return phaseHS;
     }
 
+    /**
+     * increment phaseHS by 1
+     */
     public void incPhase() {
         phaseHS++;
     }

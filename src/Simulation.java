@@ -15,7 +15,6 @@ import com.panayotis.gnuplot.style.Style;
 import com.panayotis.gnuplot.style.PlotStyle;
 
 
-
 public class Simulation {
     /* CONSTANTS */
     private static final String USAGE = "\nUsage: java Simulation n a" + 
@@ -23,7 +22,7 @@ public class Simulation {
             "\n\ta - (int >0) multiplier of ids such that ids range from 1 to a*n" + 
             "\n\tf - flag for ordering of the ids:" + 
             "\n\t\t-a for clockwise ids\n\t\t-d for counterclockwise ids\n\t\t-r for random order";
-    private static final int repeatSizeofN = 100; // in case of random id assignment
+    private static final int repeatSizeofN = 100; // iterations of ring size for rand id assignm.
     private static final String CLOCK_IDS_FLAG = "a"; // ascending ids
     private static final String COUNTER_IDS_FLAG = "d"; // descending ids
     private static final String RANDOM_IDS_FLAG = "r"; // descending ids
@@ -35,11 +34,12 @@ public class Simulation {
     private static int a; // alpha - multiplier for id range
     private static int errorCountLCR, errorCountHS; // count when an incorrect leader was elected
     private static BidirectionalRing ring;
-    // int arrays to hold num of msgs and rounds. Will hold average case for random id assignment
+    // arrays to hold num of msgs and rounds. Will hold average case for random id assignment
     private static int[] msgCountLCR, roundCountLCR, msgCountHS, roundCountHS;
-    // int arrays to hold num of msgs and rounds in best and worst cases for random id assignment
+    // arrays to hold num of msgs and rounds in best and worst cases for random id assignment
     private static int[] msgCountLCRBest, roundCountLCRBest, msgCountHSBest, roundCountHSBest;
     private static int[] msgCountLCRWorst, roundCountLCRWorst, msgCountHSWorst, roundCountHSWorst;
+    // arrays to hold the num of messages and rounds for the current iteration of ring size
     private static int[] tempMsgCountLCR, tempRoundCountLCR, tempMsgCountHS, tempRoundCountHS;
 
 
@@ -53,10 +53,21 @@ public class Simulation {
         }
 
         initializeCountArrays();
+        runAlgorithms();
+        displayAnalysis();
+
+        System.out.println();
+    }
+
+    /**
+     * Run LCR and HS over all ring sizes from 2 to n. Repeast each ring size repeatSizeofN in 
+     * case of random id assignment. Fill the count arrays with num of msgs and rounds. 
+     */
+    public static void runAlgorithms() {
         errorCountLCR = 0;
         errorCountHS = 0;
 
-        /* SIMULATION: loop through all ring sizes from 2 to n */
+        /* loop through all ring sizes from 2 to n */
         for (int ringSize = 2; ringSize <= n; ringSize++) {
             // print progress for the user
             System.out.print("Progress " + (ringSize) + "/" + n + 
@@ -71,6 +82,8 @@ public class Simulation {
                     tempMsgCountLCR[i] = ring.getMsgCount();
                     errorCountLCR = (ring.hasCorrectLeader()) ? errorCountLCR : errorCountLCR + 1;
 
+                    // clear all info stored by the nodes. Leave only their id's
+                    // nodes will be in the same state as when the ring was created the first time
                     ring.resetRing();
                     tempRoundCountHS[i] = ring.HS();
                     tempMsgCountHS[i] = ring.getMsgCount();
@@ -92,7 +105,7 @@ public class Simulation {
                 roundCountHSBest[ringSize - 2] = IntStream.of(tempRoundCountHS).min().getAsInt();
                 msgCountHSBest[ringSize - 2] = IntStream.of(tempMsgCountHS).min().getAsInt();
             }
-            else {
+            else { // CLOCKWISE OR COUNTER CLOCKWISER IDS
                 ring = new BidirectionalRing(ringSize, a, idOrder);
                 roundCountLCR[ringSize - 2] = ring.LCR();
                 msgCountLCR[ringSize - 2] = ring.getMsgCount();
@@ -106,13 +119,12 @@ public class Simulation {
                 errorCountHS = (ring.hasCorrectLeader()) ? errorCountHS : errorCountHS + 1;
             }
         }
+    }
 
-        // System.out.println("LCR communication complexity for n = 100");
-        // System.out.println("Worst case: " + msgCountLCRWorst[50]);
-        // System.out.println("Best case: " + msgCountLCRBest[50]);
-        // System.out.println("LCR Average case: " + msgCountLCR[50]);
-
-        /* ANALYSIS */
+    /**
+     * plot and display graphs from the msg and round count arrays.
+     */
+    public static void displayAnalysis() {
         // plot Time Complexity of LCR and HS. Add y = x for comparison
         JavaPlot p = new JavaPlot();
         p.setTitle("Time Complexity " + idOrderPlotTitle);
@@ -128,7 +140,8 @@ public class Simulation {
             plotGraph(p, "LCR", "Rounds", roundCountLCR);
             plotGraph(p, "HS", "Rounds", roundCountHS);
         }
-        // p.addPlot("x");
+        p.addPlot("x * log(x)");
+        p.addPlot("x");
         p.plot();
 
         // plot communication complexity of LCR and HS, add y = x*x for comparison
@@ -146,13 +159,16 @@ public class Simulation {
             plotGraph(p, "LCR", "Messages", msgCountLCR);
             plotGraph(p, "HS", "Messages", msgCountHS);
         }
+        if (idOrder == BidirectionalRing.COUNTER_ORDERED_IDS) {
+            // counter clockiwse id order is the worst case setting for LCR -> O(n^2)
+            p.addPlot("x * x");
+        }
+        else {
+            p.addPlot("x");
+        }
         p.addPlot("x * log(x)");
-        p.addPlot("x * x");
         p.plot();
-
-        System.out.println();
     }
-
 
     /**
      * 
