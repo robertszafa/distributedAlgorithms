@@ -169,10 +169,10 @@ public class BidirectionalRing {
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
                             // hopCount = (2^phase - getHopCount() + 1) / 2
-                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
-                            (int) (Math.pow(2, n.getPhase()) - fromCounter.getHopCount() + 1) / 2));
-                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
-                            (int) (Math.pow(2, n.getPhase()) - fromCounter.getHopCount() + 1) / 2));
+                            int numOfNodes = 
+                                (int) (Math.pow(2, n.getPhase()) - fromClock.getHopCount() + 1);
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, (int) numOfNodes / 2));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, (int) numOfNodes / 2));
                             n.terminate();
                             continue nodesLoop; // to next node after this terminates
                         }
@@ -196,10 +196,10 @@ public class BidirectionalRing {
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
                             // hopCount = (2^phase - getHopCount() + 1) / 2
-                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
-                            (int) (Math.pow(2, n.getPhase()) - fromClock.getHopCount() + 1) / 2));
-                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
-                            (int) (Math.pow(2, n.getPhase()) - fromClock.getHopCount() + 1) / 2));
+                            int numOfNodes = 
+                                (int) (Math.pow(2, n.getPhase()) - fromCounter.getHopCount() + 1);
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, (int) numOfNodes / 2));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, (int) numOfNodes / 2));
                             n.terminate();
                             continue nodesLoop; // to next node after this terminates
                         }
