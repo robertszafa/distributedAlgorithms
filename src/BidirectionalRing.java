@@ -118,9 +118,9 @@ public class BidirectionalRing {
      * HSMessage = <id, direction, hopCount>.
      * 
      * TERMINATION STAGE: upon receiving an HSMessage with dir = OUT and id = myId, a node elcets 
-     * itself the leader It will also know how many nodes are in the network by calculating 
-     * 2^phase - hopCount. Knowing numOfNodes, we can send an HSLeaderMessage to clock- and 
-     * counterclock neighbours with hopCount = numOfNodes/2. This means that each non-leader node 
+     * itself the leader. It will know how many nodes are in the network by calculating 
+     * (2^phase - hopCount - 1). Knowing numOfNodes, we can send an HSLeaderMessage to clock- and 
+     * counter clock neighbours with hopCount = numOfNodes/2. This means that each non-leader node 
      * will only receive one leader message from the direction closer to the elected leader node. 
      * Upon receiving an HSLeaderMessage a non-leader node will:
      *      if hopCount > 1 then forward msg to next neigbour with hopCount - 1 and terminate
@@ -168,11 +168,11 @@ public class BidirectionalRing {
                             n.setStatus(Node.LEADER_STATUS);
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
-                            // hopCount = (2^phase - getHopCount()) / 2 rounded up
-                            n.setClockBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
-                                    Math.pow(2, n.getPhase()) - fromCounter.getHopCount()) / 2)));
-                            n.setCounterBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
-                                    Math.pow(2, n.getPhase()) - fromCounter.getHopCount()) / 2)));
+                            // hopCount = (2^phase - getHopCount() + 1) / 2
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
+                            (int) (Math.pow(2, n.getPhase()) - fromCounter.getHopCount() + 1) / 2));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
+                            (int) (Math.pow(2, n.getPhase()) - fromCounter.getHopCount() + 1) / 2));
                             n.terminate();
                             continue nodesLoop; // to next node after this terminates
                         }
@@ -195,11 +195,11 @@ public class BidirectionalRing {
                             n.setStatus(Node.LEADER_STATUS);
                             n.setLeaderId(n.getId());
                             // TERMINATION STAGE: generate a leader message with 
-                            // hopCount = (2^phase - getHopCount()) / 2 rounded up
-                            n.setClockBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
-                                        Math.pow(2, n.getPhase()) - fromClock.getHopCount()) / 2)));
-                            n.setCounterBuffMsg(new HSLeaderMessage(myId, (int) Math.round((
-                                        Math.pow(2, n.getPhase()) - fromClock.getHopCount()) / 2)));
+                            // hopCount = (2^phase - getHopCount() + 1) / 2
+                            n.setClockBuffMsg(new HSLeaderMessage(myId, 
+                            (int) (Math.pow(2, n.getPhase()) - fromClock.getHopCount() + 1) / 2));
+                            n.setCounterBuffMsg(new HSLeaderMessage(myId, 
+                            (int) (Math.pow(2, n.getPhase()) - fromClock.getHopCount() + 1) / 2));
                             n.terminate();
                             continue nodesLoop; // to next node after this terminates
                         }
